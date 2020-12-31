@@ -30,7 +30,8 @@ namespace ApiJWTAuthentication
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
-            var key = "JwtTokenKey123456789";
+            var tokenKey = Configuration.GetValue<string>("TokenKey");
+            var key = Encoding.ASCII.GetBytes(tokenKey);
 
             services.AddAuthentication(x =>
             {
@@ -43,13 +44,16 @@ namespace ApiJWTAuthentication
                 x.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey=true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(key)),
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
                     ValidateIssuer=false,
                     ValidateAudience=false
                 };
             });
 
-            services.AddSingleton<IAuthenticationManager>(new AuthentionManagerManager(key));
+            services.AddSingleton<IRefreshTokenGenerator, RefreshTokenGenerator>();
+            services.AddSingleton<IRefreshTokenManager>(x => new RefreshTokenManager(key, x.GetService<IAuthenticationManager>()));
+            services.AddSingleton<IAuthenticationManager>
+                (x=> new AuthenticationManager(tokenKey,x.GetService<IRefreshTokenGenerator>()));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

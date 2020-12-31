@@ -15,10 +15,13 @@ namespace ApiJWTAuthentication.Controllers
     public class LoginController : Controller
     {
         private readonly IAuthenticationManager authenticationManager;
+        private readonly IRefreshTokenManager refreshTokenManager;
 
-        public LoginController(IAuthenticationManager authenticationManager)
+        public LoginController(IAuthenticationManager authenticationManager,
+                               IRefreshTokenManager refreshTokenManager)
         {
             this.authenticationManager = authenticationManager;
+            this.refreshTokenManager = refreshTokenManager;
         }
         [HttpGet]
         public string Country()
@@ -32,6 +35,16 @@ namespace ApiJWTAuthentication.Controllers
         {
             var token = authenticationManager.Authenticate(userCredential.userName, userCredential.password);
             if(token==null)
+                return Unauthorized();
+            return Ok(token);
+        }
+
+        [AllowAnonymous]
+        [HttpPost("authenticate/refresh")]
+        public IActionResult RefreshToken([FromBody] RefreshCredentialsDto refreshCredentialsDto)
+        {
+            var token = refreshTokenManager.refresh(refreshCredentialsDto);
+            if (token == null)
                 return Unauthorized();
             return Ok(token);
         }
